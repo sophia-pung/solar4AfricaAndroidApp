@@ -1,18 +1,3 @@
-/*
- * Copyright 2019 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package com.example.android.whileinuselocation
 
 import android.app.Notification
@@ -261,14 +246,10 @@ class ForegroundOnlyLocationService : Service() {
 
         // 1. Create Notification Channel for O+ and beyond devices (26+).
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-
-            val notificationChannel = NotificationChannel(
-                NOTIFICATION_CHANNEL_ID, titleText, NotificationManager.IMPORTANCE_DEFAULT)
-
-            // Adds NotificationChannel to system. Attempting to create an
-            // existing notification channel with its original values performs
-            // no operation, so it's safe to perform the below sequence.
-            notificationManager.createNotificationChannel(notificationChannel)
+            val CHANNEL_NAME = "solar_channel";
+            val channel = NotificationChannel(CHANNEL_ID, CHANNEL_NAME, NotificationManager.IMPORTANCE_DEFAULT)
+            val manager = getSystemService(NotificationManager::class.java)
+            manager.createNotificationChannel(channel)
         }
 
         // 2. Build the BIG_TEXT_STYLE.
@@ -290,17 +271,23 @@ class ForegroundOnlyLocationService : Service() {
 
         // 4. Build and issue the notification.
         // Notification Channel Id is ignored for Android pre O (26).
-        val notificationCompatBuilder =
-            NotificationCompat.Builder(applicationContext, NOTIFICATION_CHANNEL_ID)
 
-        return notificationCompatBuilder
-            .setStyle(bigTextStyle)
-            .setContentTitle(titleText)
-            .setContentText(mainNotificationText)
+        val notificationCompatBuilder = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.ic_dialog_email)
+            .setContentTitle(notificationTitle)
+            .setContentText(notificationText)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(mainNotificationText).setBigContentTitle(titleText))
             .setDefaults(NotificationCompat.DEFAULT_ALL)
             .setOngoing(true)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .build()
+
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.notify(NOTIFICATION_ID, notificationCompatBuilder)
+
+        return notificationCompatBuilder
+
     }
 
     /**
@@ -328,5 +315,8 @@ class ForegroundOnlyLocationService : Service() {
         private const val NOTIFICATION_ID = 12345678
 
         private const val NOTIFICATION_CHANNEL_ID = "while_in_use_channel_01"
+        private const val CHANNEL_ID = "solar_channel_id"
+        private const val notificationTitle = "My Notification Title"
+        private const val notificationText = "My Notification Text"
     }
 }

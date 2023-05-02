@@ -16,9 +16,9 @@
 package com.example.android.whileinuselocation
 
 import android.Manifest
+import android.content.Context
 import android.content.BroadcastReceiver
 import android.content.ComponentName
-import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.ServiceConnection
@@ -26,6 +26,7 @@ import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.location.Location
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
 import android.provider.Settings
@@ -37,10 +38,15 @@ import androidx.core.app.ActivityCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.example.s4atrial3.BuildConfig
 import com.example.s4atrial3.R
+import android.content.ContentValues
+import android.provider.MediaStore
 import com.google.android.material.snackbar.Snackbar
 import java.io.File
 import java.io.FileWriter
 import java.net.FileNameMap
+import android.os.Environment
+import android.widget.Toast
+import java.io.FileOutputStream
 
 private const val TAG = "MainActivity"
 private const val REQUEST_FOREGROUND_ONLY_PERMISSIONS_REQUEST_CODE = 34
@@ -61,6 +67,8 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
 
     private lateinit var outputTextView: TextView
 
+    private val REQUEST_CODE_WRITE_EXTERNAL_STORAGE_PERMISSION = 1
+
     // Monitors connection to the while-in-use service.
     private val foregroundOnlyServiceConnection = object : ServiceConnection {
 
@@ -80,6 +88,21 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
         super.onCreate(savedInstanceState)
 
         setContentView(R.layout.activity_main)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) !=
+                PackageManager.PERMISSION_GRANTED) {
+                Log.d("MyApp", "WRITE_EXTERNAL_STORAGE permission not granted. Requesting permission...")
+                requestPermissions(arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE),
+                    REQUEST_CODE_WRITE_EXTERNAL_STORAGE_PERMISSION)
+            } else {
+                Log.d("MyApp", "WRITE_EXTERNAL_STORAGE permission granted. Creating and writing to file...")
+                createAndWriteToFile()
+            }
+        } else {
+            Log.d("MyApp", "API level is less than 23. Creating and writing to file...")
+            createAndWriteToFile()
+        }
 
         foregroundOnlyBroadcastReceiver = ForegroundOnlyBroadcastReceiver()
 
@@ -106,6 +129,56 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
             }
         }
     }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
+        Log.d("MyApp", "onRequestPermissionsResult called")
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        onRequestPermissionsResult(requestCode, permissions, grantResults, "extraParam")
+    }
+
+    fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray, extraParam: String) {
+        Log.d("MyApp", "onRequestPermissionsResult with extraParam $extraParam called")
+
+        when (requestCode) {
+            REQUEST_CODE_WRITE_EXTERNAL_STORAGE_PERMISSION -> {
+                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    Log.d("MyApp", "WRITE_EXTERNAL_STORAGE permission granted. Creating and writing to file...")
+                    createAndWriteToFile()
+                } else {
+                    Log.d("MyApp", "WRITE_EXTERNAL_STORAGE permission not granted")
+                    Toast.makeText(this, "Write permission was not granted", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
+    private fun createAndWriteToFile() {
+        val fileName = "example.txt"
+        val contentValues = ContentValues().apply {
+            put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+            put(MediaStore.MediaColumns.MIME_TYPE, "text/plain")
+            put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOCUMENTS)
+        }
+
+        val resolver = applicationContext.contentResolver
+        var uri: Uri? = null
+
+        try {
+            val contentUri = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+            uri = resolver.insert(contentUri, contentValues)
+            uri?.let { uri ->
+                resolver.openOutputStream(uri)?.use { outputStream ->
+                    val fileContent = "Hello, World!"
+                    outputStream.write(fileContent.toByteArray())
+                    Log.d("MyApp", "File created and written to successfully")
+                }
+            }
+        } catch (e: Exception) {
+            uri?.let { resolver.delete(it, null, null) }
+            e.printStackTrace()
+        }
+    }
+
 
     override fun onStart() {
         super.onStart()
@@ -155,6 +228,45 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
     }
 
     // TODO: Step 1.0, Review Permissions: Method checks if permissions approved.
+    private fun writePermissionApproved(): Boolean {
+        return PackageManager.PERMISSION_GRANTED == ActivityCompat.checkSelfPermission(
+            this,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE
+        )
+    }
+
+    // TODO: Step 1.0, Review Permissions: Method requests permissions.
+    private fun requestWritePermissions() {
+        val provideRationale = writePermissionApproved()
+
+        // If the user denied a previous request, but didn't check "Don't ask again", provide
+        // additional rationale.
+        if (provideRationale) {
+            Snackbar.make(
+                findViewById(R.id.activity_main),
+                R.string.permission_rationale,
+                Snackbar.LENGTH_LONG
+            )
+                .setAction(R.string.ok) {
+                    // Request permission
+                    ActivityCompat.requestPermissions(
+                        this@MainActivity,
+                        arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE),
+                        REQUEST_CODE_WRITE_EXTERNAL_STORAGE_PERMISSION
+                    )
+                }
+                .show()
+        } else {
+            Log.d(TAG, "Request write permission")
+            ActivityCompat.requestPermissions(
+                this@MainActivity,
+                arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE),
+                REQUEST_CODE_WRITE_EXTERNAL_STORAGE_PERMISSION
+            )
+        }
+    }
+
+    // TODO: Step 1.0, Review Permissions: Method checks if permissions approved.
     private fun foregroundPermissionApproved(): Boolean {
         return PackageManager.PERMISSION_GRANTED == ActivityCompat.checkSelfPermission(
             this,
@@ -194,50 +306,6 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
     }
 
     // TODO: Step 1.0, Review Permissions: Handles permission result.
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<String>,
-        grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        Log.d(TAG, "onRequestPermissionResult")
-
-        when (requestCode) {
-            REQUEST_FOREGROUND_ONLY_PERMISSIONS_REQUEST_CODE -> when {
-                grantResults.isEmpty() ->
-                    // If user interaction was interrupted, the permission request
-                    // is cancelled and you receive empty arrays.
-                    Log.d(TAG, "User interaction was cancelled.")
-                grantResults[0] == PackageManager.PERMISSION_GRANTED ->
-                    // Permission was granted.
-                    foregroundOnlyLocationService?.subscribeToLocationUpdates()
-                else -> {
-                    // Permission denied.
-                    updateButtonState(false)
-
-                    Snackbar.make(
-                        findViewById(R.id.activity_main),
-                        R.string.permission_denied_explanation,
-                        Snackbar.LENGTH_LONG
-                    )
-                        .setAction(R.string.settings) {
-                            // Build intent that displays the App settings screen.
-                            val intent = Intent()
-                            intent.action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
-                            val uri = Uri.fromParts(
-                                "package",
-                                BuildConfig.APPLICATION_ID,
-                                null
-                            )
-                            intent.data = uri
-                            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                            startActivity(intent)
-                        }
-                        .show()
-                }
-            }
-        }
-    }
 
     private fun updateButtonState(trackingLocation: Boolean) {
         if (trackingLocation) {
