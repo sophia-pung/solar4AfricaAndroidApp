@@ -9,7 +9,7 @@ android {
     compileSdkVersion 32
     defaultConfig {
         applicationId "com.example.s4atrial3"
-        minSdkVersion 24
+        minSdkVersion 30
         targetSdkVersion 32
         versionCode 1
         versionName "1.0"

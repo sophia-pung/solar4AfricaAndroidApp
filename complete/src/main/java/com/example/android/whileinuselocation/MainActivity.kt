@@ -152,20 +152,29 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
         }
     }
 
-    private fun createAndWriteToFile() {
+    fun createAndWriteToFile() {
+        Log.d("MyApp", "createAndWriteToFile called")
         val fileName = "example.txt"
+        val relativePath = "Download/MyApp"
+
         val contentValues = ContentValues().apply {
-            put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
-            put(MediaStore.MediaColumns.MIME_TYPE, "text/plain")
-            put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOCUMENTS)
+            put(MediaStore.Downloads.DISPLAY_NAME, fileName)
+            put(MediaStore.Downloads.RELATIVE_PATH, relativePath)
+            put(MediaStore.Downloads.MIME_TYPE, "text/plain")
+        }
+        Log.d("ExampleApp", "Content values: $contentValues")
+        Log.d("ExampleApp", "Downloads directory: ${Environment.DIRECTORY_DOWNLOADS}")
+
+        val dir = applicationContext.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS)
+        if (dir == null || !dir.exists() || !dir.isDirectory) {
+            Log.e("MyApp", "Documents directory does not exist or is not a directory")
         }
 
         val resolver = applicationContext.contentResolver
         var uri: Uri? = null
 
         try {
-            val contentUri = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
-            uri = resolver.insert(contentUri, contentValues)
+            uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
             uri?.let { uri ->
                 resolver.openOutputStream(uri)?.use { outputStream ->
                     val fileContent = "Hello, World!"
@@ -174,6 +183,7 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
                 }
             }
         } catch (e: Exception) {
+            Log.e("MyApp", "Exception occurred: ${e.message}")
             uri?.let { resolver.delete(it, null, null) }
             e.printStackTrace()
         }
