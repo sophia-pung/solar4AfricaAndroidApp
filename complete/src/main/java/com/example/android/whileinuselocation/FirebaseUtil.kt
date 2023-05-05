@@ -1,7 +1,8 @@
-package com.example.s4atrial3
+package com.example.android.whileinuselocation
 
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
+import com.example.s4atrial3.R
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError

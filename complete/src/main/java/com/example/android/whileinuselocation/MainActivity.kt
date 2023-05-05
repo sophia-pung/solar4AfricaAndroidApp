@@ -45,7 +45,15 @@ import java.io.File
 import java.io.FileWriter
 import java.net.FileNameMap
 import android.os.Environment
+import android.widget.EditText
 import android.widget.Toast
+import com.google.firebase.FirebaseApp
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
+import com.google.firebase.database.ktx.database
+import com.google.firebase.ktx.Firebase
 import java.io.FileOutputStream
 
 private const val TAG = "MainActivity"
@@ -85,10 +93,68 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        setContentView(R.layout.activity_main)
+        FirebaseApp.initializeApp(this)
+
+        // Set up Firebase database emulator
+        Firebase.database.useEmulator("10.0.2.2", 9000)
+
+        Log.d("MyApp", "test log message")
+
+        var beginJourney = findViewById<Button>(R.id.beginjourneybutton)
+        beginJourney.setOnClickListener {
+            Log.d("MyApp", "beginJourney OnClickListener called")
+            val fileName2 = "example_${System.currentTimeMillis()}.txt"
+            var name: String = findViewById<EditText>(R.id.Nametextinput).text.toString()
+            var vehicleID: String = findViewById<EditText>(R.id.VehicleIDtextinput).text.toString()
+            if (BuildConfig.LOG_DEBUG) {
+                Log.d("MyApp", "File was successfully stored")
+                Log.d("MyApp", "File $fileName2 was successfully stored")
+            }
+
+            var output = "$name  $vehicleID"
+
+            Log.d("TAG", "File was successfully stored")
+
+            // Update the text of the TextView
+            findViewById<TextView>(R.id.output).text = output
+
+            Toast.makeText(this@MainActivity, output, Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "begin journey successful", Toast.LENGTH_LONG).show()
+            Log.d("MyApp", "File successfully stored")
+
+            // Write a message to the database
+            val database = FirebaseDatabase.getInstance()
+            val myRef = database.reference.child("users").push()
+            myRef.child("name").setValue(name)
+            myRef.child("vehicleID").setValue(vehicleID)
+
+            // Log successful storage
+            val fileName = "example_${System.currentTimeMillis()}.txt"
+            Log.d("MyApp", "File $fileName was successfully stored")
+
+            // Create and write to file
+            createAndWriteToFile()
+        }
+
+
+        // Add listener to the database reference
+        val database = FirebaseDatabase.getInstance()
+        val myRef = database.reference.child("users")
+        myRef.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                // This method will be called whenever data is changed or added to the "users" child node in the database
+                // Use snapshot.children to iterate over each child node, and extract relevant data as necessary
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                // This method will be called if there is an error while trying to retrieve data from the database
+            }
+        })
+
         super.onCreate(savedInstanceState)
 
         setContentView(R.layout.activity_main)
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) !=
                 PackageManager.PERMISSION_GRANTED) {
@@ -97,11 +163,9 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
                     REQUEST_CODE_WRITE_EXTERNAL_STORAGE_PERMISSION)
             } else {
                 Log.d("MyApp", "WRITE_EXTERNAL_STORAGE permission granted. Creating and writing to file...")
-                createAndWriteToFile()
             }
         } else {
             Log.d("MyApp", "API level is less than 23. Creating and writing to file...")
-            createAndWriteToFile()
         }
 
         foregroundOnlyBroadcastReceiver = ForegroundOnlyBroadcastReceiver()
@@ -113,6 +177,7 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
         outputTextView = findViewById(R.id.output_text_view)
 
         foregroundOnlyLocationButton.setOnClickListener {
+            Log.d(TAG, "foregroundOnlyLocationButton clicked")
             val enabled = sharedPreferences.getBoolean(
                 SharedPreferenceUtil.KEY_FOREGROUND_ENABLED, false)
 
@@ -128,6 +193,7 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
                 }
             }
         }
+
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
@@ -143,7 +209,6 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
             REQUEST_CODE_WRITE_EXTERNAL_STORAGE_PERMISSION -> {
                 if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     Log.d("MyApp", "WRITE_EXTERNAL_STORAGE permission granted. Creating and writing to file...")
-                    createAndWriteToFile()
                 } else {
                     Log.d("MyApp", "WRITE_EXTERNAL_STORAGE permission not granted")
                     Toast.makeText(this, "Write permission was not granted", Toast.LENGTH_SHORT).show()
@@ -154,7 +219,7 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
 
     fun createAndWriteToFile() {
         Log.d("MyApp", "createAndWriteToFile called")
-        val fileName = "example.txt"
+        val fileName = "example_${System.currentTimeMillis()}.txt"
         val relativePath = "Download/MyApp"
 
         val contentValues = ContentValues().apply {
@@ -177,9 +242,10 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
             uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
             uri?.let { uri ->
                 resolver.openOutputStream(uri)?.use { outputStream ->
-                    val fileContent = "Hello, World!"
+                    val fileContent = "Test, Test, Test!"
                     outputStream.write(fileContent.toByteArray())
                     Log.d("MyApp", "File created and written to successfully")
+
                 }
             }
         } catch (e: Exception) {

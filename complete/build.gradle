@@ -22,6 +22,11 @@ android {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
+        debug {
+            // Set the log level to DEBUG for this build type
+            buildConfigField("boolean", "LOG_DEBUG", "true")
+            // ...
+        }
     }
 
     compileOptions {

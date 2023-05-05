@@ -6,7 +6,7 @@
     android:id="@+id/activity_main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".MainActivity">
+    tools:context="./MainActivity">
 
     <Button
         android:id="@+id/foreground_only_location_button"
@@ -71,24 +71,21 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"/>
 
-    <EditText
-        android:id="@+id/GPSCoordinates"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:ems="10"
-        android:inputType="textPersonName"
-        android:hint="00.0000, 00.0000"
-        app:layout_constraintTop_toBottomOf="@+id/VehicleIDtextinput"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"/>
-
     <Button
         android:id="@+id/beginjourneybutton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Begin Journey"
-        app:layout_constraintTop_toBottomOf="@+id/GPSCoordinates"
+        app:layout_constraintTop_toBottomOf="@+id/VehicleIDtextinput"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"/>
+
+    <TextView
+        android:id="@+id/output"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text=""
+        tools:layout_editor_absoluteX="190dp"
+        tools:layout_editor_absoluteY="558dp" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
