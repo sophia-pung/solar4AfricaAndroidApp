@@ -32,6 +32,7 @@ import java.util.concurrent.TimeUnit
  * For apps running in the background on O+ devices, location is computed much less than previous
  * versions. Please reference documentation for details.
  */
+
 class ForegroundOnlyLocationService : Service() {
     /*
      * Checks whether the bound activity has really gone away (foreground service with notification
@@ -62,6 +63,7 @@ class ForegroundOnlyLocationService : Service() {
     private var currentLocation: Location? = null
 
     override fun onCreate() {
+        super.onCreate()
         Log.d(TAG, "onCreate()")
 
         notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager

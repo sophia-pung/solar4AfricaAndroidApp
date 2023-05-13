@@ -16,31 +16,22 @@
 package com.example.s4atrial3;
 
 import android.Manifest
+import android.content.*
 import android.view.View
-import android.content.Context
-import android.content.BroadcastReceiver
-import android.content.ComponentName
-import android.content.Intent
-import android.content.IntentFilter
-import android.content.ServiceConnection
-import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.location.Location
 import android.net.Uri
-import android.os.Build
-import android.os.Bundle
-import android.os.IBinder
 import android.util.Log
 import android.widget.Button
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
-import android.content.ContentValues
+import android.os.*
+import android.preference.PreferenceManager
 import android.provider.MediaStore
 import com.google.android.material.snackbar.Snackbar
 import java.io.File
-import android.os.Environment
 import android.widget.EditText
 import android.widget.Toast
 import com.example.android.s4atrial3.ForegroundOnlyLocationService
@@ -53,6 +44,11 @@ import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
+import java.security.AccessControlContext
+import java.security.AccessController.getContext
+import java.text.SimpleDateFormat
+import java.util.Date
+import kotlin.properties.Delegates
 
 private const val TAG = "MainActivity"
 private const val REQUEST_FOREGROUND_ONLY_PERMISSIONS_REQUEST_CODE = 34
@@ -65,13 +61,16 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
     private var foregroundOnlyLocationService: ForegroundOnlyLocationService? = null
 
     // Listens for location broadcasts from ForegroundOnlyLocationService.
-    private lateinit var foregroundOnlyBroadcastReceiver: ForegroundOnlyBroadcastReceiver
+
+    private var foregroundOnlyBroadcastReceiver: ForegroundOnlyBroadcastReceiver? = null
+
 
     private lateinit var sharedPreferences: SharedPreferences
 
     private lateinit var foregroundOnlyLocationButton: Button
 
-    private lateinit var outputTextView: TextView
+    private var outputTextView: TextView by Delegates.notNull()
+
 
     private val REQUEST_CODE_WRITE_EXTERNAL_STORAGE_PERMISSION = 1
 
@@ -100,11 +99,17 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
         // Set up Firebase database emulator
         Firebase.database.useEmulator("10.0.2.2", 9000)
 
+
+        outputTextView = findViewById(R.id.output_text_view)
+
         // Add click listener to the Begin Journey button
         val beginJourneyButton = findViewById<Button>(R.id.beginjourneybutton)
         beginJourneyButton.setOnClickListener {
             onBeginJourneyClick(it)
         }
+
+        // Initialize shared preferences
+        sharedPreferences = PreferenceManager.getDefaultSharedPreferences(applicationContext)
 
         // Set up listener for database updates
         val database = FirebaseDatabase.getInstance()
@@ -134,11 +139,8 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
             Log.d("MyApp", "API level is less than 23. Creating and writing to file...")
         }
 
-        // Register broadcast receiver for location updates
-        foregroundOnlyBroadcastReceiver = ForegroundOnlyBroadcastReceiver()
-        sharedPreferences = getSharedPreferences(getString(R.string.preference_file_key), Context.MODE_PRIVATE)
-        foregroundOnlyLocationButton = findViewById(R.id.foreground_only_location_button)
-        outputTextView = findViewById(R.id.output_text_view)
+        // Initialize foreground location updates button
+        foregroundOnlyLocationButton = findViewById<Button>(R.id.foreground_only_location_button)
 
         // Set click listener for foreground location updates button
         foregroundOnlyLocationButton.setOnClickListener {
@@ -160,6 +162,7 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
         }
     }
 
+
     fun onBeginJourneyClick(view: View?) {
         // Get the values of the name and vehicle ID inputs
         val nameInput = findViewById<EditText>(R.id.Nametextinput)
@@ -167,21 +170,21 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
         val name = nameInput.text.toString()
         val vehicleID = vehicleIDInput.text.toString()
 
-        Log.d("MyApp", "beginJourney OnClickListener called")
+        Log.d("MyApp", "beginJourney OnClickListener called test")
 
-//        // Construct the output string
-//        val output = "$name is beginning a journey in vehicle $vehicleID"
+        // Construct the output string
+        val output = "$name is beginning a journey in vehicle $vehicleID"
 //
 //        // Update the output text view with the output string
 //        val outputTextView = findViewById<TextView>(R.id.output)
 //        outputTextView.text = output
 
         // Write the output string to a file
-//        val fileName = "journey_${System.currentTimeMillis()}.txt"
-//        val fileContents = "Journey details: $output"
-//        applicationContext.openFileOutput(fileName, Context.MODE_PRIVATE).use {
-//            it.write(fileContents.toByteArray())
-//        }
+        val fileName = "journey_${System.currentTimeMillis()}.txt"
+        val fileContents = "Journey details: $output"
+        applicationContext.openFileOutput(fileName, Context.MODE_PRIVATE).use {
+            it.write(fileContents.toByteArray())
+        }
 //
 //        // Write the name and vehicle ID to Firebase
 //        val userRecord = mapOf(
@@ -196,8 +199,6 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
         val toastMessage = "$name is starting journey in vehicle $vehicleID"
         Toast.makeText(this, toastMessage, Toast.LENGTH_SHORT).show()
     }
-
-
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
         Log.d("MyApp", "onRequestPermissionsResult called")
@@ -220,70 +221,33 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
         }
     }
 
-    fun createAndWriteToFile() {
-        Log.d("MyApp", "createAndWriteToFile called")
-        val fileName = "example_${System.currentTimeMillis()}.txt"
-        val relativePath = "Download/MyApp"
-
-        val contentValues = ContentValues().apply {
-            put(MediaStore.Downloads.DISPLAY_NAME, fileName)
-            put(MediaStore.Downloads.RELATIVE_PATH, relativePath)
-            put(MediaStore.Downloads.MIME_TYPE, "text/plain")
-        }
-        Log.d("ExampleApp", "Content values: $contentValues")
-        Log.d("ExampleApp", "Downloads directory: ${Environment.DIRECTORY_DOWNLOADS}")
-
-        val dir = applicationContext.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS)
-        if (dir == null || !dir.exists() || !dir.isDirectory) {
-            Log.e("MyApp", "Documents directory does not exist or is not a directory")
-        }
-
-        val resolver = applicationContext.contentResolver
-        var uri: Uri? = null
-
-        try {
-            uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
-            uri?.let { uri ->
-                resolver.openOutputStream(uri)?.use { outputStream ->
-                    val fileContent = "Test, Test, Test!"
-                    outputStream.write(fileContent.toByteArray())
-                    Log.d("MyApp", "File created and written to successfully")
-
-                }
-            }
-        } catch (e: Exception) {
-            Log.e("MyApp", "Exception occurred: ${e.message}")
-            uri?.let { resolver.delete(it, null, null) }
-            e.printStackTrace()
-        }
-    }
-
-
     override fun onStart() {
         super.onStart()
+        Log.d("MyApp", "ONSTART() called")
 
-        updateButtonState(
-            sharedPreferences.getBoolean(SharedPreferenceUtil.KEY_FOREGROUND_ENABLED, false)
-        )
+        // Initialize ForegroundOnlyBroadcastReceiver
+        foregroundOnlyBroadcastReceiver = ForegroundOnlyBroadcastReceiver(null)
+        foregroundOnlyBroadcastReceiver!!.start()
+
+        updateButtonState(sharedPreferences.getBoolean(SharedPreferenceUtil.KEY_FOREGROUND_ENABLED, false))
         sharedPreferences.registerOnSharedPreferenceChangeListener(this)
 
         val serviceIntent = Intent(this, ForegroundOnlyLocationService::class.java)
         bindService(serviceIntent, foregroundOnlyServiceConnection, Context.BIND_AUTO_CREATE)
     }
 
+
     override fun onResume() {
         super.onResume()
         LocalBroadcastManager.getInstance(this).registerReceiver(
-            foregroundOnlyBroadcastReceiver,
-            IntentFilter(
-                ForegroundOnlyLocationService.ACTION_FOREGROUND_ONLY_LOCATION_BROADCAST)
+            foregroundOnlyBroadcastReceiver!!,
+            IntentFilter(ForegroundOnlyLocationService.ACTION_FOREGROUND_ONLY_LOCATION_BROADCAST)
         )
     }
 
     override fun onPause() {
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(
-            foregroundOnlyBroadcastReceiver
-        )
+        foregroundOnlyBroadcastReceiver!!.stop()
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(foregroundOnlyBroadcastReceiver!!)
         super.onPause()
     }
 
@@ -402,13 +366,26 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
     /**
      * Receiver for location broadcasts from [ForegroundOnlyLocationService].
      */
-    private inner class ForegroundOnlyBroadcastReceiver : BroadcastReceiver() {
 
-        override fun onReceive(context: Context, intent: Intent) {
-            val location = intent.getParcelableExtra<Location>(
-                ForegroundOnlyLocationService.EXTRA_LOCATION
-            )
+    /**
+     * Receiver for location broadcasts from [ForegroundOnlyLocationService].
+     */
+    private inner class ForegroundOnlyBroadcastReceiver(private val location: Location?) : BroadcastReceiver() {
+        var handler = Handler(Looper.getMainLooper())
+        private var mRunnable: Runnable? = null
 
+        private val broadcastRunnable = object : Runnable {
+            override fun run() {
+                // Schedule this runnable to run again after 10 seconds
+                handler.postDelayed(this, 10000)
+
+                val intent = Intent()
+                onReceive(applicationContext, intent) // Call onReceive function with an empty Intent
+            }
+        }
+
+        override fun onReceive(context: Context?, intent: Intent?) {
+            val location = intent?.getParcelableExtra<Location>(ForegroundOnlyLocationService.EXTRA_LOCATION)
             if (location != null) {
                 logResultsToScreen("Foreground location: ${location.toText()}")
                 val tstamp = System.currentTimeMillis()
@@ -417,10 +394,88 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
                 File(applicationContext.filesDir, FILENAME).printWriter().use{ out ->
                     out.println("Location: ${location.toText()} Time: $tstamp")
                 }
-                //var file = File(FILENAME)
-                //file.createNewFile()
-                //File(FILENAME).appendText("Location: ${location.toText()} Time: $tstamp")
+                Log.d("MyApp", "LOCATION WRITTEN SUCCESSFULLY")
+
+                createAndWriteToFile(location) // Call createAndWriteToFile within ForegroundOnlyBroadcastReceiver with stored location
             }
+        }
+
+        // Start running the code every 10 seconds
+        fun start() {
+            Log.d("MyApp", "Starting ForegroundOnlyBroadcastReceiver")
+            val filter = IntentFilter()
+            filter.addAction(ForegroundOnlyLocationService.ACTION_FOREGROUND_ONLY_LOCATION_BROADCAST)
+            LocalBroadcastManager.getInstance(applicationContext).registerReceiver(this, filter)
+
+            if (handler == null) {
+                Log.d("MyApp", "Handler is null")
+                handler = Handler(Looper.getMainLooper())
+            }
+
+            if (mRunnable == null) {
+                Log.d("MyApp", "Runnable is null")
+                mRunnable = broadcastRunnable
+            }
+
+            handler.postDelayed(mRunnable!!, 10000)
+        }
+
+        // Stop running the code periodically
+        fun stop() {
+            Log.d("MyApp", "Stopping ForegroundOnlyBroadcastReceiver")
+            LocalBroadcastManager.getInstance(applicationContext).unregisterReceiver(this)
+            mRunnable?.let { handler.removeCallbacks(it) }
+        }
+    }
+
+    // Define createAndWriteToFile top-level function
+    fun createAndWriteToFile(location: Location) {
+        val date = Date()
+        val dateFormat = SimpleDateFormat("yyyyMMdd")
+        val fileName = "car_coordinates_${dateFormat.format(date)}.txt"
+        val relativePath = "Download/MyApp"
+        val currentTimeInMillis = System.currentTimeMillis()
+
+        val contentValues = ContentValues().apply {
+            put(MediaStore.Downloads.DISPLAY_NAME, fileName)
+            put(MediaStore.Downloads.RELATIVE_PATH, relativePath)
+            put(MediaStore.Downloads.MIME_TYPE, "text/plain")
+        }
+
+        val resolver = applicationContext.contentResolver
+
+        try {
+            val queryUri = MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+            val projection = arrayOf(MediaStore.Downloads._ID) // Add _ID column to projection
+            val selection = "${MediaStore.Downloads.DISPLAY_NAME} = ?"
+            val selectionArgs = arrayOf(fileName)
+            val sortOrder = null
+
+            val query = resolver.query(queryUri, projection, selection, selectionArgs, sortOrder)
+
+            if (query != null && query.moveToFirst()) {
+                val columnIdIndex = query.getColumnIndexOrThrow(MediaStore.Downloads._ID)
+                val fileId = query.getLong(columnIdIndex)
+                val uri = ContentUris.withAppendedId(MediaStore.Downloads.EXTERNAL_CONTENT_URI, fileId)
+
+                resolver.openOutputStream(uri, "wa")?.use { outputStream ->
+                    val fileContent = "Location: ${location.toText()} Time: $currentTimeInMillis\n"
+                    outputStream.write(fileContent.toByteArray())
+                    Log.d("MyApp", "File written to successfully $fileName")
+                }
+            } else {
+                val newUri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
+                newUri?.let { uri ->
+                    resolver.openOutputStream(uri)?.use { outputStream ->
+                        val fileContent = "Location: ${location.toText()} Time: $currentTimeInMillis\n"
+                        outputStream.write(fileContent.toByteArray())
+                        Log.d("MyApp", "File created and written to successfully $fileName")
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("MyApp", "Exception occurred: ${e.message}")
+            e.printStackTrace()
         }
     }
 }
