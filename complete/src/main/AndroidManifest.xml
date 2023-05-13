@@ -17,7 +17,8 @@
         android:allowBackup="true"
         android:label="Solar4Africa"
         android:supportsRtl="true">
-        <activity android:name="com.example.android.whileinuselocation.MainActivity"
+        <activity
+            android:name="com.example.s4atrial3.MainActivity"
             android:theme="@style/Theme.AppCompat.Light"
             android:exported="true">
             <intent-filter>
@@ -28,7 +29,7 @@
 
         <!-- Foreground services in Android 10+ require type. -->
         <!-- TODO: 2.2, Add foreground service type. -->
-        <service android:name="com.example.android.whileinuselocation.ForegroundOnlyLocationService"
+        <service android:name="com.example.android.s4atrial3.ForegroundOnlyLocationService"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="location" />

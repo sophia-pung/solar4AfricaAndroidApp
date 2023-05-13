@@ -1,4 +1,4 @@
-package com.example.android.whileinuselocation
+package com.example.android.s4atrial3
 
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity

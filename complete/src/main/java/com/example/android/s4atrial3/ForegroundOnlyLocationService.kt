@@ -1,4 +1,4 @@
-package com.example.android.whileinuselocation
+package com.example.android.s4atrial3
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -258,7 +258,7 @@ class ForegroundOnlyLocationService : Service() {
             .setBigContentTitle(titleText)
 
         // 3. Set up main Intent/Pending Intents for notification.
-        val launchActivityIntent = Intent(this, MainActivity::class.java)
+        val launchActivityIntent = Intent(this, FirebaseUtil.MainActivity::class.java)
 
         val cancelIntent = Intent(this, ForegroundOnlyLocationService::class.java)
         cancelIntent.putExtra(EXTRA_CANCEL_LOCATION_TRACKING_FROM_NOTIFICATION, true)
@@ -302,7 +302,7 @@ class ForegroundOnlyLocationService : Service() {
     companion object {
         private const val TAG = "ForegroundOnlyLocationService"
 
-        private const val PACKAGE_NAME = "com.example.android.whileinuselocation"
+        private const val PACKAGE_NAME = "com.example.android.s4atrial3"
 
         internal const val ACTION_FOREGROUND_ONLY_LOCATION_BROADCAST =
             "$PACKAGE_NAME.action.FOREGROUND_ONLY_LOCATION_BROADCAST"

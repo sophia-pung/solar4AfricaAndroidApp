@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.example.android.whileinuselocation
+package com.example.android.s4atrial3
 
 import android.content.Context
 import android.location.Location

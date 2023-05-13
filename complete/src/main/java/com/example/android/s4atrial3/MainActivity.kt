@@ -13,9 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.example.android.whileinuselocation
+package com.example.s4atrial3;
 
 import android.Manifest
+import android.view.View
 import android.content.Context
 import android.content.BroadcastReceiver
 import android.content.ComponentName
@@ -29,24 +30,22 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
-import android.provider.Settings
 import android.util.Log
 import android.widget.Button
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
-import com.example.s4atrial3.BuildConfig
-import com.example.s4atrial3.R
 import android.content.ContentValues
 import android.provider.MediaStore
 import com.google.android.material.snackbar.Snackbar
 import java.io.File
-import java.io.FileWriter
-import java.net.FileNameMap
 import android.os.Environment
 import android.widget.EditText
 import android.widget.Toast
+import com.example.android.s4atrial3.ForegroundOnlyLocationService
+import com.example.android.s4atrial3.SharedPreferenceUtil
+import com.example.android.s4atrial3.toText
 import com.google.firebase.FirebaseApp
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
@@ -54,7 +53,6 @@ import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
-import java.io.FileOutputStream
 
 private const val TAG = "MainActivity"
 private const val REQUEST_FOREGROUND_ONLY_PERMISSIONS_REQUEST_CODE = 34
@@ -93,52 +91,22 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        // Initialize Firebase
         FirebaseApp.initializeApp(this)
 
         // Set up Firebase database emulator
         Firebase.database.useEmulator("10.0.2.2", 9000)
 
-        Log.d("MyApp", "test log message")
-
-        var beginJourney = findViewById<Button>(R.id.beginjourneybutton)
-        beginJourney.setOnClickListener {
-            Log.d("MyApp", "beginJourney OnClickListener called")
-            val fileName2 = "example_${System.currentTimeMillis()}.txt"
-            var name: String = findViewById<EditText>(R.id.Nametextinput).text.toString()
-            var vehicleID: String = findViewById<EditText>(R.id.VehicleIDtextinput).text.toString()
-            if (BuildConfig.LOG_DEBUG) {
-                Log.d("MyApp", "File was successfully stored")
-                Log.d("MyApp", "File $fileName2 was successfully stored")
-            }
-
-            var output = "$name  $vehicleID"
-
-            Log.d("TAG", "File was successfully stored")
-
-            // Update the text of the TextView
-            findViewById<TextView>(R.id.output).text = output
-
-            Toast.makeText(this@MainActivity, output, Toast.LENGTH_LONG).show()
-            Toast.makeText(this, "begin journey successful", Toast.LENGTH_LONG).show()
-            Log.d("MyApp", "File successfully stored")
-
-            // Write a message to the database
-            val database = FirebaseDatabase.getInstance()
-            val myRef = database.reference.child("users").push()
-            myRef.child("name").setValue(name)
-            myRef.child("vehicleID").setValue(vehicleID)
-
-            // Log successful storage
-            val fileName = "example_${System.currentTimeMillis()}.txt"
-            Log.d("MyApp", "File $fileName was successfully stored")
-
-            // Create and write to file
-            createAndWriteToFile()
+        // Add click listener to the Begin Journey button
+        val beginJourneyButton = findViewById<Button>(R.id.beginjourneybutton)
+        beginJourneyButton.setOnClickListener {
+            onBeginJourneyClick(it)
         }
 
-
-        // Add listener to the database reference
+        // Set up listener for database updates
         val database = FirebaseDatabase.getInstance()
         val myRef = database.reference.child("users")
         myRef.addValueEventListener(object : ValueEventListener {
@@ -152,9 +120,7 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
             }
         })
 
-        super.onCreate(savedInstanceState)
-
-        setContentView(R.layout.activity_main)
+        // Request permissions for writing to external storage
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) !=
                 PackageManager.PERMISSION_GRANTED) {
@@ -168,14 +134,13 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
             Log.d("MyApp", "API level is less than 23. Creating and writing to file...")
         }
 
+        // Register broadcast receiver for location updates
         foregroundOnlyBroadcastReceiver = ForegroundOnlyBroadcastReceiver()
-
-        sharedPreferences =
-            getSharedPreferences(getString(R.string.preference_file_key), Context.MODE_PRIVATE)
-
+        sharedPreferences = getSharedPreferences(getString(R.string.preference_file_key), Context.MODE_PRIVATE)
         foregroundOnlyLocationButton = findViewById(R.id.foreground_only_location_button)
         outputTextView = findViewById(R.id.output_text_view)
 
+        // Set click listener for foreground location updates button
         foregroundOnlyLocationButton.setOnClickListener {
             Log.d(TAG, "foregroundOnlyLocationButton clicked")
             val enabled = sharedPreferences.getBoolean(
@@ -193,8 +158,46 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
                 }
             }
         }
-
     }
+
+    fun onBeginJourneyClick(view: View?) {
+        // Get the values of the name and vehicle ID inputs
+        val nameInput = findViewById<EditText>(R.id.Nametextinput)
+        val vehicleIDInput = findViewById<EditText>(R.id.VehicleIDtextinput)
+        val name = nameInput.text.toString()
+        val vehicleID = vehicleIDInput.text.toString()
+
+        Log.d("MyApp", "beginJourney OnClickListener called")
+
+//        // Construct the output string
+//        val output = "$name is beginning a journey in vehicle $vehicleID"
+//
+//        // Update the output text view with the output string
+//        val outputTextView = findViewById<TextView>(R.id.output)
+//        outputTextView.text = output
+
+        // Write the output string to a file
+//        val fileName = "journey_${System.currentTimeMillis()}.txt"
+//        val fileContents = "Journey details: $output"
+//        applicationContext.openFileOutput(fileName, Context.MODE_PRIVATE).use {
+//            it.write(fileContents.toByteArray())
+//        }
+//
+//        // Write the name and vehicle ID to Firebase
+//        val userRecord = mapOf(
+//            "name" to name,
+//            "vehicleID" to vehicleID
+//        )
+//        val database = Firebase.database
+//        val myRef = database.getReference("users").push()
+//        myRef.setValue(userRecord)
+
+        // Display a success message to the user
+        val toastMessage = "$name is starting journey in vehicle $vehicleID"
+        Toast.makeText(this, toastMessage, Toast.LENGTH_SHORT).show()
+    }
+
+
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
         Log.d("MyApp", "onRequestPermissionsResult called")
