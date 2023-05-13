@@ -358,10 +358,10 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
         }
     }
 
-    private fun logResultsToScreen(output: String) {
-        val outputWithPreviousLogs = "$output\n${outputTextView.text}"
-        outputTextView.text = outputWithPreviousLogs
-    }
+//    private fun logResultsToScreen(output: String) {
+//        val outputWithPreviousLogs = "$output\n${outputTextView.text}"
+//        outputTextView.text = outputWithPreviousLogs
+//    }
 
     /**
      * Receiver for location broadcasts from [ForegroundOnlyLocationService].
@@ -387,14 +387,21 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
         override fun onReceive(context: Context?, intent: Intent?) {
             val location = intent?.getParcelableExtra<Location>(ForegroundOnlyLocationService.EXTRA_LOCATION)
             if (location != null) {
-                logResultsToScreen("Foreground location: ${location.toText()}")
+                // logResultsToScreen("Foreground location: ${location.toText()}")
                 val tstamp = System.currentTimeMillis()
-                logResultsToScreen(tstamp.toString())
+                // logResultsToScreen(tstamp.toString())
 
                 File(applicationContext.filesDir, FILENAME).printWriter().use{ out ->
                     out.println("Location: ${location.toText()} Time: $tstamp")
                 }
                 Log.d("MyApp", "LOCATION WRITTEN SUCCESSFULLY")
+
+                val latitude = location.latitude
+                val longitude = location.longitude
+                val accuracy = location.accuracy
+                val locationText = "Latitude: $latitude\nLongitude: $longitude\nAccuracy: $accuracy meters"
+                Log.i("MyApp", "New location:\n$locationText")
+                Toast.makeText(this@MainActivity, locationText, Toast.LENGTH_SHORT).show()
 
                 createAndWriteToFile(location) // Call createAndWriteToFile within ForegroundOnlyBroadcastReceiver with stored location
             }
