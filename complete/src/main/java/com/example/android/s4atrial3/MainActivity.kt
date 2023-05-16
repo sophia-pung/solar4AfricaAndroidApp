@@ -473,18 +473,15 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
                 resolver.openOutputStream(uri, "wa")?.use { outputStream ->
                     val fileContent = "Location: ${location.toText()} Time: $currentTimeInMillis\n"
                     outputStream.write(fileContent.toByteArray())
-                    val fileTitle = "Car Details || Driver: $name, CarID: $vehicleID\n"
-                    outputStream.write(fileTitle.toByteArray())
-                    Log.d("MyApp", "File written to successfully $fileName")
+                    Log.d("MyApp", "File written to successfully $fileName, location: $location, time: $currentTimeInMillis")
                 }
             } else {
                 val newUri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
                 newUri?.let { uri ->
                     resolver.openOutputStream(uri)?.use { outputStream ->
-                        
                         val fileContent = "Location: ${location.toText()} Time: $currentTimeInMillis\n"
                         outputStream.write(fileContent.toByteArray())
-                        Log.d("MyApp", "File created and written to successfully $fileName")
+                        Log.d("MyApp", "File not yet created, now created successfully $fileName, location: $location, time: $currentTimeInMillis")
                     }
                 }
             }
