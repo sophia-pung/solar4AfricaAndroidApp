@@ -477,6 +477,8 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
                         
                         val fileContent = "Location: ${location.toText()} Time: $currentTimeInMillis\n"
                         outputStream.write(fileContent.toByteArray())
+                        val fileTitle = "Car Details || Driver: $name, CarID: $vehicleID\n"
+                        outputStream.write(fileTitle.toByteArray())
                         Log.d("MyApp", "File created and written to successfully $fileName")
                     }
                 }
