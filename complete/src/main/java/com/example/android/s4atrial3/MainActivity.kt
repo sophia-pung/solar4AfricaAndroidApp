@@ -143,6 +143,9 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
         foregroundOnlyLocationButton = findViewById<Button>(R.id.foreground_only_location_button)
 
         // Set click listener for foreground location updates button
+        foregroundOnlyLocationButton = findViewById<Button>(R.id.foreground_only_location_button)
+
+// Set click listener for foreground location updates button
         foregroundOnlyLocationButton.setOnClickListener {
             Log.d(TAG, "foregroundOnlyLocationButton clicked")
             val enabled = sharedPreferences.getBoolean(
@@ -150,11 +153,13 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
 
             if (enabled) {
                 foregroundOnlyLocationService?.unsubscribeToLocationUpdates()
+                foregroundOnlyLocationButton.text = getString(R.string.start_location_updates_button_text)
             } else {
                 // TODO: Step 1.0, Review Permissions: Checks and requests if needed.
                 if (foregroundPermissionApproved()) {
                     foregroundOnlyLocationService?.subscribeToLocationUpdates()
                         ?: Log.d(TAG, "Service Not Bound")
+                    foregroundOnlyLocationButton.text = getString(R.string.stop_location_updates_button_text)
                 } else {
                     requestForegroundPermissions()
                 }
