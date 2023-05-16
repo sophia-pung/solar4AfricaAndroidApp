@@ -10,7 +10,7 @@ android {
 
     defaultConfig {
         applicationId "com.example.s4atrial3"
-        minSdkVersion 30
+        minSdkVersion 28
         targetSdkVersion 32
         versionCode 1
         versionName "1.0"
