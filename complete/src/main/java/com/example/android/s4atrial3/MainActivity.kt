@@ -458,6 +458,11 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
             val selectionArgs = arrayOf(fileName)
             val sortOrder = null
 
+            val nameInput = findViewById<EditText>(R.id.Nametextinput)
+            val vehicleIDInput = findViewById<EditText>(R.id.VehicleIDtextinput)
+            val name = nameInput.text.toString()
+            val vehicleID = vehicleIDInput.text.toString()
+
             val query = resolver.query(queryUri, projection, selection, selectionArgs, sortOrder)
 
             if (query != null && query.moveToFirst()) {
@@ -468,6 +473,8 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
                 resolver.openOutputStream(uri, "wa")?.use { outputStream ->
                     val fileContent = "Location: ${location.toText()} Time: $currentTimeInMillis\n"
                     outputStream.write(fileContent.toByteArray())
+                    val fileTitle = "Car Details || Driver: $name, CarID: $vehicleID\n"
+                    outputStream.write(fileTitle.toByteArray())
                     Log.d("MyApp", "File written to successfully $fileName")
                 }
             } else {
@@ -477,8 +484,6 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
                         
                         val fileContent = "Location: ${location.toText()} Time: $currentTimeInMillis\n"
                         outputStream.write(fileContent.toByteArray())
-                        val fileTitle = "Car Details || Driver: $name, CarID: $vehicleID\n"
-                        outputStream.write(fileTitle.toByteArray())
                         Log.d("MyApp", "File created and written to successfully $fileName")
                     }
                 }
