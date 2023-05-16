@@ -479,6 +479,8 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
                 val newUri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
                 newUri?.let { uri ->
                     resolver.openOutputStream(uri)?.use { outputStream ->
+                        val fileTitle = "Car Details || Driver: $name, CarID: $vehicleID\n"
+                        outputStream.write(fileTitle.toByteArray())
                         val fileContent = "Location: ${location.toText()} Time: $currentTimeInMillis\n"
                         outputStream.write(fileContent.toByteArray())
                         Log.d("MyApp", "File not yet created, now created successfully $fileName, location: $location, time: $currentTimeInMillis")
